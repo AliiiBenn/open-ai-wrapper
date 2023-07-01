@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, Protocol
 import openai
 
 from enum import Enum
@@ -18,6 +18,14 @@ class ChatCompletionResponseChoices:
     index : int
     message : ChatCompletionResponseChoicesMessage
     finish_reason : str
+    
+    
+@dataclass 
+class ChatCompletionResponseUsage:
+    prompt_tokens : int
+    completion_tokens : int
+    total_tokens : int
+
 
 @dataclass
 class ChatCompletionResponse:
@@ -25,7 +33,7 @@ class ChatCompletionResponse:
     object : str
     model : str
     choices : ChatCompletionResponseChoices
-    usage : dict[str, int]
+    usage : ChatCompletionResponseUsage
 
 
 
@@ -45,22 +53,31 @@ class Roles(Enum):
     USER = "user"
 
     
-class ChatCompletionMessage(ABC):
-    @staticmethod
-    @abstractmethod
-    def build(*, content : str) -> dict[str, str]:
-        pass
+class ChatCompletionMessage(Protocol):
+    message : dict[str, str]
+    
+    def __init__(self, *, content : str) -> None:
+        ...
+        
+    
+    def __build(self) -> dict[str, str]:
+        ...
     
     
 class UserCompletionMessage(ChatCompletionMessage):
-    @staticmethod
-    def build(*, content : str) -> dict[str, str]:
+    def __init__(self, *, content : str) -> None:
+        self.message = self.__build(content=content)
+    
+    def __build(self, *, content : str) -> dict[str, str]:
         return {"role": Roles.USER.value, "content": content}
     
 
 class SystemCompletionMessage(ChatCompletionMessage):
-    @staticmethod
-    def build(*, content : str) -> dict[str, str]:
+    def __init__(self, *, content : str) -> None:
+        self.message = self.__build(content=content)
+    
+    
+    def __build(self, *, content : str) -> dict[str, str]:
         return {"role": Roles.SYSTEM.value, "content": content}
     
 
@@ -75,18 +92,18 @@ class ChatCompletion:
         self.max_tokens = None
         
         
-    def add_message(self, content : dict[str, str]) -> Self:
+    def __add_message(self, content : dict[str, str]) -> Self:
         self.messages.append(content)
 
         return self
     
-    def add_messages(self, *contents : dict[str, str]) -> Self:
+    def __add_messages(self, *contents : dict[str, str]) -> Self:
         self.messages.extend(contents)
         
         return self
     
     
-    def set_temperature(self, temperature : float) -> Self:
+    def __set_temperature(self, temperature : float) -> Self:
         MIN_TEMPERATURE = 0
         MAX_TEMPERATURE = 2
         
@@ -97,18 +114,18 @@ class ChatCompletion:
         
         return self
     
-    def set_n(self, n : int) -> Self:
+    def __set_n(self, n : int) -> Self:
         self.n = n
         
         return self
     
-    def set_max_tokens(self, max_tokens : int) -> Self:
+    def __set_max_tokens(self, max_tokens : int) -> Self:
         self.max_tokens = max_tokens
         
         return self    
     
     
-    def create(self) -> ChatCompletionResponse:
+    def generate(self) -> ChatCompletionResponse:
         params = {
             "model": self.model,
             "messages": self.messages,
@@ -118,6 +135,8 @@ class ChatCompletion:
         
         if self.max_tokens is not None:
             params["max_tokens"] = self.max_tokens
+            
+        print(params)
         
         response = openai.ChatCompletion.create(**params)
         
@@ -133,11 +152,35 @@ class ChatCompletion:
                 ),
                 finish_reason = response['choices'][0]['finish_reason']
             ),
-            usage = response['usage']
+            usage = ChatCompletionResponseUsage(
+                prompt_tokens = response["usage"]["prompt_tokens"],
+                completion_tokens = response["usage"]["completion_tokens"],
+                total_tokens = response["usage"]["total_tokens"]   
+            )
         )
         
         
         return final_response
+    
+    
+    
+    @classmethod
+    def create(
+        cls,
+        model : Models,
+        messages : list[ChatCompletionMessage],
+        temperature : float = 1.0,
+        n : int = 1,        
+    ) -> ChatCompletionResponse:
+        chat_completion = ChatCompletion(model = model)
+        
+        chat_completion.__set_temperature(temperature)
+        chat_completion.__set_n(n)
+        
+        for message in messages:
+            chat_completion.__add_message(message.message)
+            
+        return chat_completion.generate()
     
         
     
