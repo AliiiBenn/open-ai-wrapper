@@ -2,7 +2,6 @@ from typing import Self, Protocol
 import openai
 
 from enum import Enum
-from abc import ABC, abstractmethod
 
 from dataclasses import dataclass
 
@@ -136,7 +135,6 @@ class ChatCompletion:
         if self.max_tokens is not None:
             params["max_tokens"] = self.max_tokens
             
-        print(params)
         
         response = openai.ChatCompletion.create(**params)
         

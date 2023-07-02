@@ -23,3 +23,4 @@ from .chat import *
 from .completion import *
 from .edit import *
 from .image import *
+from .models import *

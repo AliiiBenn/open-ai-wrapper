@@ -5,6 +5,7 @@ openai_wrapper/chat.py
 openai_wrapper/completion.py
 openai_wrapper/edit.py
 openai_wrapper/image.py
+openai_wrapper/models.py
 openai_wrapper.egg-info/PKG-INFO
 openai_wrapper.egg-info/SOURCES.txt
 openai_wrapper.egg-info/dependency_links.txt
