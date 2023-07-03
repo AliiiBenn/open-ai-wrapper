@@ -1,6 +1,7 @@
 README.md
 setup.py
 openai_wrapper/__init__.py
+openai_wrapper/error.py
 openai_wrapper.egg-info/PKG-INFO
 openai_wrapper.egg-info/SOURCES.txt
 openai_wrapper.egg-info/dependency_links.txt
